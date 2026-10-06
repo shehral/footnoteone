@@ -1,0 +1,70 @@
+{
+  "_doc_note": "Shape per the OpenAI Responses API web search guide, https://developers.openai.com/api/docs/guides/tools-web-search, read 2026-10-05. Confirmed there: a search is an output item of type web_search_call (id, status, action), and with include=['web_search_call.action.sources'] its action.sources returns the complete list of URLs the model consulted, unlike the inline citations; answer text parts of type output_text carry url_citation annotations with url, title, start_index, end_index. The Responses API reference (https://developers.openai.com/api/reference/resources/responses/methods/create) gives each source entry as {type: url, url}, and gives the open_page and find_in_page actions (which the guide lists for reasoning models) a url field. The guide shows no usage block; usage.input_tokens and usage.output_tokens are the ResponseUsage field names in the official openai-python SDK types (src/openai/types/responses/response_usage.py), read the same day. Hand-written from those shapes, not a live capture.",
+  "provider": "openai",
+  "model_requested": "gpt-5-mini",
+  "request": {
+    "model": "gpt-5-mini",
+    "tools": [{"type": "web_search"}],
+    "include": ["web_search_call.action.sources"],
+    "input": "What is attribution patching?"
+  },
+  "response": {
+    "id": "resp_1",
+    "model": "gpt-5-mini-2026-01-01",
+    "status": "completed",
+    "output": [
+      {
+        "type": "web_search_call",
+        "id": "ws_1",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "attribution patching interpretability",
+          "sources": [
+            {"type": "url", "url": "https://example.org/notes/attribution-patching"},
+            {"type": "url", "url": "https://www.lesswrong.com/posts/abc/attribution-patching"},
+            {"type": "url", "url": "https://arxiv.org/abs/2310.10348"}
+          ]
+        }
+      },
+      {
+        "type": "web_search_call",
+        "id": "ws_2",
+        "status": "completed",
+        "action": {
+          "type": "open_page",
+          "url": "https://example.net/mechanistic-interpretability/attribution-patching"
+        }
+      },
+      {
+        "type": "message",
+        "id": "msg_1",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Attribution patching estimates activation patching by gradients. It was introduced as a fast, cheap alternative.",
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url": "https://www.lesswrong.com/posts/abc/attribution-patching",
+                "title": "Attribution Patching",
+                "start_index": 0,
+                "end_index": 64
+              },
+              {
+                "type": "url_citation",
+                "url": "https://example.org/notes/attribution-patching?utm_source=chatgpt.com",
+                "title": "Notes",
+                "start_index": 65,
+                "end_index": 112
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "usage": {"input_tokens": 812, "output_tokens": 96, "total_tokens": 908}
+  }
+}

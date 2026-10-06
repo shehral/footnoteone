@@ -1,0 +1,19 @@
+{
+  "_doc_note": "Same request shape as anthropic_web_search_searched.json, per https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool, read 2026-10-05, which says Claude decides when to search and answers stable knowledge such as math directly. Here the model answered without invoking the tool: no server_tool_use block, and usage reports 0 web_search_requests. Hand-written, not a live capture.",
+  "provider": "anthropic",
+  "model_requested": "claude-sonnet-4-5",
+  "request": {
+    "model": "claude-sonnet-4-5",
+    "max_tokens": 1024,
+    "messages": [{"role": "user", "content": "What is 2 + 2?"}],
+    "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}]
+  },
+  "response": {
+    "id": "msg_2",
+    "model": "claude-sonnet-4-5-20260101",
+    "stop_reason": "end_turn",
+    "role": "assistant",
+    "content": [{"type": "text", "text": "4."}],
+    "usage": {"input_tokens": 30, "output_tokens": 2, "server_tool_use": {"web_search_requests": 0}}
+  }
+}

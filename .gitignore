@@ -11,3 +11,4 @@ build/
 .env.*
 *.duckdb
 .DS_Store
+.worktrees/

@@ -1,0 +1,26 @@
+{
+  "_doc_note": "Same request shape as openai_web_search_searched.json, per https://developers.openai.com/api/docs/guides/tools-web-search, read 2026-10-05, which says that with tool_choice auto the search is optional. Here the model answered from memory and emitted no web_search_call item. Hand-written, not a live capture.",
+  "provider": "openai",
+  "model_requested": "gpt-5-mini",
+  "request": {
+    "model": "gpt-5-mini",
+    "tools": [{"type": "web_search"}],
+    "include": ["web_search_call.action.sources"],
+    "input": "What is 2 + 2?"
+  },
+  "response": {
+    "id": "resp_2",
+    "model": "gpt-5-mini-2026-01-01",
+    "status": "completed",
+    "output": [
+      {
+        "type": "message",
+        "id": "msg_2",
+        "role": "assistant",
+        "status": "completed",
+        "content": [{"type": "output_text", "text": "4.", "annotations": []}]
+      }
+    ],
+    "usage": {"input_tokens": 20, "output_tokens": 2, "total_tokens": 22}
+  }
+}

@@ -1,0 +1,23 @@
+# Purposes: search = builds the engine's search index; user_fetch = fetches on a user's request at
+# answer time; training = collects training data. Document URLs come from the Oct 4, 2026 landscape
+# corpus (R307 OpenAI, R308 Perplexity, R309 Anthropic, R310 Google); the Bing page is the vendor's
+# crawler help article. The Apple and Meta entries were added on Oct 5, 2026 after their vendor pages
+# confirmed token and purpose. `checked` is the date the implementer last fetched every doc_url.
+# `crawls: false` marks a control token: robots.txt rules for it govern how content another crawler
+# fetched may be used, and it never fetches pages itself, so the audit does not probe it.
+version: "2026-10-05"
+checked: "2026-10-05"
+bots:
+  - {name: "OpenAI search indexer", token: "OAI-SearchBot", vendor: "OpenAI", purpose: "search", doc_url: "https://developers.openai.com/api/docs/bots"}
+  - {name: "ChatGPT user fetch", token: "ChatGPT-User", vendor: "OpenAI", purpose: "user_fetch", doc_url: "https://developers.openai.com/api/docs/bots", note: "OpenAI says robots.txt rules may not apply to user-initiated fetches."}
+  - {name: "OpenAI training crawler", token: "GPTBot", vendor: "OpenAI", purpose: "training", doc_url: "https://developers.openai.com/api/docs/bots"}
+  - {name: "Perplexity search indexer", token: "PerplexityBot", vendor: "Perplexity", purpose: "search", doc_url: "https://docs.perplexity.ai/guides/bots"}
+  - {name: "Perplexity user fetch", token: "Perplexity-User", vendor: "Perplexity", purpose: "user_fetch", doc_url: "https://docs.perplexity.ai/guides/bots", note: "Perplexity says this agent generally ignores robots.txt."}
+  - {name: "Anthropic search indexer", token: "Claude-SearchBot", vendor: "Anthropic", purpose: "search", doc_url: "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler"}
+  - {name: "Claude user fetch", token: "Claude-User", vendor: "Anthropic", purpose: "user_fetch", doc_url: "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler"}
+  - {name: "Anthropic training crawler", token: "ClaudeBot", vendor: "Anthropic", purpose: "training", doc_url: "https://support.claude.com/en/articles/8896518-does-anthropic-crawl-data-from-the-web-and-how-can-site-owners-block-the-crawler"}
+  - {name: "Google Search crawler", token: "Googlebot", vendor: "Google", purpose: "search", doc_url: "https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers"}
+  - {name: "Google AI training control", token: "Google-Extended", vendor: "Google", purpose: "training", doc_url: "https://developers.google.com/search/docs/crawling-indexing/google-common-crawlers", note: "Controls use for Gemini training and grounding only; does not affect Google Search inclusion or ranking.", crawls: false}
+  - {name: "Bing crawler", token: "Bingbot", vendor: "Microsoft", purpose: "search", doc_url: "https://www.bing.com/webmasters/help/which-crawlers-does-bing-use-8c184ec0"}
+  - {name: "Apple AI training control", token: "Applebot-Extended", vendor: "Apple", purpose: "training", doc_url: "https://support.apple.com/en-us/119829", note: "Does not crawl; controls use for Apple foundation model training only; not considered in Search ranking.", crawls: false}
+  - {name: "Meta AI training crawler", token: "Meta-ExternalAgent", vendor: "Meta", purpose: "training", doc_url: "https://developers.facebook.com/docs/sharing/webmasters/web-crawlers"}

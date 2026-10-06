@@ -1,0 +1,84 @@
+{
+  "_doc_note": "Shape per the Perplexity Agent API docs, read 2026-10-05. https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar: the Agent API (POST https://api.perplexity.ai/v1/agent) returns a typed output array, one item per step, with a search_results item for sources and a message item for the answer text; Sonar and Sonar Pro map to the fast preset; the model value below is the one in that page's example response to a fast preset request. https://docs.perplexity.ai/api-reference/agent-post: a search_results item holds queries and results (id, url, title, snippet, optional date and last_updated, source); message content parts are of type output_text with annotations of type url_citation (url, title, start_index, end_index); status is one of completed, failed, incomplete, in_progress, queued, cancelled; there is no top-level output_text field (output_text is an SDK property). https://docs.perplexity.ai/docs/agent-api/tools/web-search: usage carries input_tokens, output_tokens, total_tokens and tool_calls_details.search_web.invocation when tool-call usage is reported. Every documented example response leaves annotations empty or absent while the answer text carries inline markers that refer to a result id, so the two populated annotations below follow the reference schema and are unverified against a live response. Hand-written, not a live capture.",
+  "provider": "perplexity",
+  "model_requested": "fast",
+  "request": {
+    "preset": "fast",
+    "input": "What is attribution patching?",
+    "tools": [{"type": "web_search"}]
+  },
+  "response": {
+    "id": "resp_pplx_1",
+    "object": "response",
+    "created_at": 1791201600,
+    "model": "openai/gpt-5.6-luna",
+    "status": "completed",
+    "output": [
+      {
+        "type": "search_results",
+        "queries": ["attribution patching"],
+        "results": [
+          {
+            "id": 1,
+            "url": "https://www.lesswrong.com/posts/abc/attribution-patching",
+            "title": "Attribution Patching",
+            "snippet": "Attribution patching uses gradients to approximate activation patching.",
+            "date": "2023-03-01",
+            "last_updated": "2023-03-04",
+            "source": "web"
+          },
+          {
+            "id": 2,
+            "url": "https://example.org/notes/attribution-patching",
+            "title": "Notes",
+            "snippet": "A worked example of attribution patching on a small model.",
+            "source": "web"
+          },
+          {
+            "id": 3,
+            "url": "https://arxiv.org/abs/2310.10348",
+            "title": "arXiv",
+            "snippet": "Attribution patching outperforms automated circuit discovery.",
+            "date": "2023-10-16",
+            "last_updated": "2023-10-16",
+            "source": "web"
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "id": "msg_pplx_1",
+        "role": "assistant",
+        "status": "completed",
+        "content": [
+          {
+            "type": "output_text",
+            "text": "Attribution patching approximates activation patching with gradients.[1] One backward pass scores every component at once.[2]",
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url": "https://www.lesswrong.com/posts/abc/attribution-patching",
+                "title": "Attribution Patching",
+                "start_index": 0,
+                "end_index": 69
+              },
+              {
+                "type": "url_citation",
+                "url": "https://example.org/notes/attribution-patching",
+                "title": "Notes",
+                "start_index": 73,
+                "end_index": 122
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input_tokens": 400,
+      "output_tokens": 60,
+      "total_tokens": 460,
+      "tool_calls_details": {"search_web": {"invocation": 1}}
+    }
+  }
+}

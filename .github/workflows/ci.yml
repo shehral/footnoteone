@@ -8,8 +8,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the DCO step reads every commit in the push or pull request range
+      - name: DCO sign-off on every commit in the range
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          # The pull request head, not HEAD: a pull_request checkout is GitHub's unsigned merge commit.
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+        shell: bash
+        run: |
+          head="${PR_HEAD:-$(git rev-parse HEAD)}"
+          if [ -n "$PR_BASE" ]; then
+            base="$PR_BASE"
+          elif [ -n "$PUSH_BEFORE" ] && git cat-file -e "${PUSH_BEFORE}^{commit}" 2>/dev/null; then
+            base="$PUSH_BEFORE"
+          else
+            base="${head}~1"
+          fi
+          commits="$(git rev-list "${base}..${head}")"
+          missing=0
+          for commit in $commits; do
+            message="$(git log -1 --format=%B "$commit")"
+            if ! grep -Eq '^Signed-off-by: .+ <.+>$' <<< "$message"; then
+              echo "::error::commit $commit has no Signed-off-by trailer; sign it off with git commit -s"
+              missing=1
+            fi
+          done
+          echo "checked $(git rev-list --count "${base}..${head}") commit(s) in ${base}..${head}"
+          exit "$missing"
       - uses: astral-sh/setup-uv@v5
       - run: uv python install 3.12
-      - run: uv sync --all-extras
+      - run: uv sync --locked --all-extras
       - run: uv run ruff check .
       - run: uv run pytest -q
+      - name: Wheel smoke test
+        run: |
+          uv build
+          uv venv --python 3.12 "$RUNNER_TEMP/wheel-smoke"
+          uv pip install --python "$RUNNER_TEMP/wheel-smoke/bin/python" dist/*.whl
+          "$RUNNER_TEMP/wheel-smoke/bin/footnote" --version

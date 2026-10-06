@@ -1,0 +1,29 @@
+# List prices from the Oct 4, 2026 landscape corpus: OpenAI R286 (web_search $10 per 1k calls plus
+# tokens at model rates), Anthropic R289 ($10 per 1k searches plus tokens). Perplexity's rows come from
+# its live Agent API pricing page instead (see the perplexity block), superseding the corpus's Sonar rows.
+# Token prices are per 1M tokens. Unknown models fall back to the provider default and `doctor` flags
+# them. Bump `version` whenever a number changes.
+version: "2026-10-05"
+providers:
+  openai:
+    # $10/1k is web_search; legacy web_search_preview is $25/1k on non-reasoning models: needs a new row.
+    tool_call_usd_per_1k: 10.0
+    default_model: "gpt-5-mini"
+    models:
+      gpt-5-mini: {input_per_1m: 0.25, output_per_1m: 2.00}
+  anthropic:
+    tool_call_usd_per_1k: 10.0
+    default_model: "claude-sonnet-4-5"
+    models:
+      claude-sonnet-4-5: {input_per_1m: 3.00, output_per_1m: 15.00}
+  perplexity:
+    # Agent API rates from https://docs.perplexity.ai/docs/getting-started/pricing, read 2026-10-05 (Sonar
+    # chat completions ended 2026-09-27). web_search is $2.50 per 1k invocations at the standard search
+    # type; the fast search type, which the fast preset uses, is $1.00 per 1k, so this overestimates
+    # fast-preset cost, the safe direction for a budget cap.
+    tool_call_usd_per_1k: 2.5
+    default_model: "fast"
+    models:
+      # The fast preset's model at the higher of its two listed tiers (the lower is $0.20 in, $1.20 out):
+      # the page does not say which tier a request bills at, so this is the safe overestimate for a cap.
+      fast: {input_per_1m: 0.40, output_per_1m: 1.80}

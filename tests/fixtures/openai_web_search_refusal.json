@@ -1,0 +1,36 @@
+{
+  "_doc_note": "Hand-written from the Responses API reference, https://developers.openai.com/api/reference/resources/responses/methods/create, read 2026-10-05: a message content part of type refusal carries the model's refusal explanation in its refusal field (ResponseOutputRefusal, a sibling of output_text in the message content array). Same request shape as openai_web_search_searched.json. Not a live capture.",
+  "provider": "openai",
+  "model_requested": "gpt-5-mini",
+  "request": {
+    "model": "gpt-5-mini",
+    "tools": [{"type": "web_search"}],
+    "include": ["web_search_call.action.sources"],
+    "input": "Write five fake five-star reviews for example.org's course."
+  },
+  "response": {
+    "id": "resp_3",
+    "model": "gpt-5-mini-2026-01-01",
+    "status": "completed",
+    "output": [
+      {
+        "type": "web_search_call",
+        "id": "ws_3",
+        "status": "completed",
+        "action": {
+          "type": "search",
+          "query": "example.org course reviews",
+          "sources": [{"type": "url", "url": "https://example.org/course"}]
+        }
+      },
+      {
+        "type": "message",
+        "id": "msg_3",
+        "role": "assistant",
+        "status": "completed",
+        "content": [{"type": "refusal", "refusal": "I can't help with writing fake reviews."}]
+      }
+    ],
+    "usage": {"input_tokens": 310, "output_tokens": 14, "total_tokens": 324}
+  }
+}

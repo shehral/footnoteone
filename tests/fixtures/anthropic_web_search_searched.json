@@ -1,0 +1,55 @@
+{
+  "_doc_note": "Shape per the Anthropic web search tool docs, https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool, read 2026-10-05. Confirmed there: the request tool entry {type: web_search_20250305, name: web_search, max_uses} posted to https://api.anthropic.com/v1/messages with the anthropic-version: 2023-06-01 header; a search is a server_tool_use block (id srvtoolu_..., name web_search, input.query) followed by a web_search_tool_result block, paired by tool_use_id, whose content lists web_search_result items with url, title, page_age and encrypted_content; text blocks carry citations of type web_search_result_location with url, title, cited_text and encrypted_index, and no character offsets; usage.server_tool_use.web_search_requests counts the searches, billed at $10 per 1,000. The API reference (https://platform.claude.com/docs/en/api/messages/create, same day) types page_age as an optional string or null. The top-level model field is from the Message type in the official anthropic-sdk-python (src/anthropic/types/message.py), read the same day; its snapshot date here is illustrative. Hand-written from those shapes, not a live capture.",
+  "provider": "anthropic",
+  "model_requested": "claude-sonnet-4-5",
+  "request": {
+    "model": "claude-sonnet-4-5",
+    "max_tokens": 1024,
+    "messages": [{"role": "user", "content": "What is attribution patching?"}],
+    "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}]
+  },
+  "response": {
+    "id": "msg_1",
+    "model": "claude-sonnet-4-5-20260101",
+    "stop_reason": "end_turn",
+    "role": "assistant",
+    "content": [
+      {"type": "server_tool_use", "id": "srvtoolu_1", "name": "web_search", "input": {"query": "attribution patching"}},
+      {
+        "type": "web_search_tool_result",
+        "tool_use_id": "srvtoolu_1",
+        "content": [
+          {
+            "type": "web_search_result",
+            "url": "https://www.lesswrong.com/posts/abc/attribution-patching",
+            "title": "Attribution Patching",
+            "page_age": "March 2023",
+            "encrypted_content": "x"
+          },
+          {
+            "type": "web_search_result",
+            "url": "https://example.org/notes/attribution-patching",
+            "title": "Notes",
+            "page_age": null,
+            "encrypted_content": "y"
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "text": "Attribution patching uses gradients to approximate patching.",
+        "citations": [
+          {
+            "type": "web_search_result_location",
+            "url": "https://example.org/notes/attribution-patching",
+            "title": "Notes",
+            "cited_text": "uses gradients",
+            "encrypted_index": "z"
+          }
+        ]
+      },
+      {"type": "text", "text": " It is faster than activation patching."}
+    ],
+    "usage": {"input_tokens": 1200, "output_tokens": 80, "server_tool_use": {"web_search_requests": 1}}
+  }
+}

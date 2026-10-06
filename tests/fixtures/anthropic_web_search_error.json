@@ -1,0 +1,28 @@
+{
+  "_doc_note": "Failed-search shape per https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool, read 2026-10-05: the API still answers HTTP 200, and the web_search_tool_result content is one object {type: web_search_tool_result_error, error_code} instead of a list. Documented codes: too_many_requests, invalid_tool_input, max_uses_exceeded, query_too_long, request_too_large, unavailable. The docs say an errored search is not billed but show no usage for one, so usage reporting 0 web_search_requests here is an assumption. The text block ahead of the search follows the docs' example response. Same request shape as anthropic_web_search_searched.json. Hand-written, not a live capture.",
+  "provider": "anthropic",
+  "model_requested": "claude-sonnet-4-5",
+  "request": {
+    "model": "claude-sonnet-4-5",
+    "max_tokens": 1024,
+    "messages": [{"role": "user", "content": "What is attribution patching?"}],
+    "tools": [{"type": "web_search_20250305", "name": "web_search", "max_uses": 3}]
+  },
+  "response": {
+    "id": "msg_3",
+    "model": "claude-sonnet-4-5-20260101",
+    "stop_reason": "end_turn",
+    "role": "assistant",
+    "content": [
+      {"type": "text", "text": "I'll search for that."},
+      {"type": "server_tool_use", "id": "srvtoolu_3", "name": "web_search", "input": {"query": "attribution patching"}},
+      {
+        "type": "web_search_tool_result",
+        "tool_use_id": "srvtoolu_3",
+        "content": {"type": "web_search_tool_result_error", "error_code": "too_many_requests"}
+      },
+      {"type": "text", "text": " The search failed, so from memory: it approximates activation patching with gradients."}
+    ],
+    "usage": {"input_tokens": 900, "output_tokens": 40, "server_tool_use": {"web_search_requests": 0}}
+  }
+}
