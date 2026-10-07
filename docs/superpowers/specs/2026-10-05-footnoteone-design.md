@@ -1,7 +1,7 @@
 # FootnoteOne, design spec
 
 **Date:** 2026-10-05
-**Status:** Approved by the lead (name and go decided 2026-10-05); this spec fixes the v0.1 scope.
+**Status:** Approved by the lead (name and go decided 2026-10-05); this spec fixes the v0.1 scope. Amended 2026-10-05 after plan A was built: section 11 records the as-built interfaces and the decisions the lead approved (METRICS 0.2.0).
 **Author:** Mohammad Ali Shehral, with the Oct 4 product fleet synthesis as input (`~/geo-project/research/2026-10-04-landscape/product_vs_elmo_result.json`).
 
 ## 1. What it is
@@ -56,6 +56,8 @@ Storage: `.footnote/manifests.jsonl`, `.footnote/runs.jsonl`, `.footnote/sources
 
 ## 6. Metric definitions (spec/METRICS.md is normative)
 
+`spec/METRICS.md` 0.2.0 supersedes the list below where they differ: intervals for intent-clustered rates and for differences are Student t over per-intent means (the bootstrap is a sensitivity figure), no verdict is given under 8 shared intents, the sign-flip test is exact up to 12 intents and Monte Carlo above, a run whose every search failed is an error, the MDE baseline is floored at 0.05 as a planning prior, and canonical URLs are recomputed at report time.
+
 - A run counts only when `status = ok`. Errors, refusals, timeouts and budget skips are excluded and reported as a failure rate.
 - Branded and placebo intents never enter a headline.
 - Engines and channels are never averaged together.
@@ -79,7 +81,7 @@ Storage: `.footnote/manifests.jsonl`, `.footnote/runs.jsonl`, `.footnote/sources
 
 ## 8. Constraints
 
-- Python 3.12 or newer; dependencies limited to pydantic, httpx, typer, pyyaml, jinja2 and the standard library; dev dependencies pytest, pytest-httpx (or respx), ruff.
+- Python 3.12 or newer; dependencies limited to pydantic, httpx, typer, pyyaml, jinja2 and the standard library (TOML is read with `tomllib`; `footnote init` writes TOML from a template); dev dependencies pytest, pytest-httpx, pytest-asyncio, ruff.
 - All network calls go through adapters; parsing is pure and replayable from stored raw responses.
 - Every stored metric value carries numerator, denominator, exclusion counts and the interval method.
 - Secrets come only from environment variables; nothing is written to disk except under `.footnote/`.
@@ -93,3 +95,15 @@ Unit tests per module against recorded fixtures and simulations; statistics vali
 ## 10. Risks carried into the plan
 
 API answers are not the consumer app (5 to 27% overlap), so every surface is labeled. Most verdicts will read "Can't tell yet" at creator budgets, so the report leads with descriptive findings that hold at any n. Provider fields drift, so manifests pin versions and parsing is replayable. A semester project needs named maintainers; GOVERNANCE.md names the rule.
+
+## 11. As built after plan A (2026-10-05)
+
+Plan A (`docs/superpowers/plans/2026-10-05-footnoteone-instrument-core.md`) built sections 5 to 8 with these differences, all approved by the lead on 2026-10-05:
+
+- Audit: `fetch_robots` returns `RobotsFetch(status, text, error, access)`, `probe_url` returns `ProbeResult(status, final_url, error)`, `access_matrix` returns `AccessReport(robots_status, robots_error, robots_access, rows)`. An unreachable robots.txt (1xx, 429, 5xx or a failed request) means complete disallow; an unavailable one (other 4xx, a final 3xx, too many redirects) means no rules (RFC 9309 2.3.1). Control tokens (`crawls: false`) are not probed. The probe column means what a request carrying that user-agent string from the user's own machine receives; bot-verifying firewalls may answer the real bot differently.
+- Adapters: `Observation` gains `model_requested` and `failed_searches`; parsers never raise on JSON-shaped input; consulted includes pages the engine opened or fetched; cited is recorded per occurrence; Perplexity follows the Agent API (`POST /v1/agent`, presets, inline citation markers resolved by result id when annotations are empty). Refusals, truncations and context-window cutoffs are statuses, never ok runs.
+- Records: `Run.raw_sha256` and `Run.parser_version` are optional (None when no response body was received); non-finite floats are rejected; `Manifest` carries the engine configs and intents it ran (plan B); `Page` is the library record (plan B).
+- Statistics: Student t intervals beside the bootstrap; zero-width verdict guard; input validation; incomplete beta from DLMF 8.17.22 and the modified Lentz algorithm.
+- Pricing: Perplexity rows follow its Agent API page; dated model snapshots resolve to their row; unknown models fall back to the provider default and `doctor` flags them. The runner must refuse unpriced models and reserve the worst-case cost of each call before making it.
+- Canonicalization is versioned (`canon.CANON_VERSION`) and recomputed at report time; the owned set includes exact off-site URLs and owned YouTube video ids, and profile prefixes compare without scheme and path case.
+- Section 9: no provider has been called live; the fixtures are hand-written from the vendor docs read on 2026-10-05. Recording one real response per provider is the first live step of plan B, before any report is trusted.

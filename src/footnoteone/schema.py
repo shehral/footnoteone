@@ -17,6 +17,7 @@ IntentKind = Literal["unbranded", "branded", "placebo"]
 Provider = Literal["openai", "anthropic", "perplexity"]
 RunnerKind = Literal["local", "gha"]
 ManifestStatus = Literal["running", "done", "aborted"]
+PageSource = Literal["sitemap", "rss", "youtube", "manual"]
 
 
 def new_id() -> str:
@@ -38,6 +39,47 @@ def canonical_json(obj: Any) -> str:
 def sha256_of(obj: Any) -> str:
     """sha256 hex digest of `canonical_json(obj)`."""
     return hashlib.sha256(canonical_json(obj).encode()).hexdigest()
+
+
+def run_key(label: str, intent_id: str, prompt_id: str, engine_config_id: str, rep_idx: int) -> str:
+    """Deterministic id of one planned call within a burst label; the runner uses it as Run.id and for
+    resume."""
+    return sha256_of([label, intent_id, prompt_id, engine_config_id, rep_idx])[:32]
+
+
+ALL_SEARCHES_FAILED = "all searches failed"
+# Run.error_kind, why a run did not end ok (Ruling B30). An error is one of: "transport" (no answer: the
+# connection failed, before or after the request was sent), "http" (an error status), "unreadable" (a 200
+# whose body is not a JSON object), "parse"
+# (the parser raised; the raw response is stored), "provider_failed" (the response's own status says it
+# failed or is one the parser does not know), "all_searches_failed" (METRICS 0.2.0). A timeout is "timeout",
+# a budget_skip "budget", and a refused or truncated answer carries its status name, so a run's error_kind is
+# None exactly when its status is ok.
+ERROR_KINDS = (
+    "transport", "http", "unreadable", "parse", "provider_failed", "all_searches_failed", "timeout", "budget",
+    "refused", "truncated",
+)
+
+
+def effective_status(
+    status: RunStatus, search_calls: int, failed_searches: int
+) -> tuple[RunStatus, str | None]:
+    """METRICS 0.2.0 scope rule: a run whose every search failed is an error ("all searches failed");
+    any other run keeps its status. Returns the effective status and the reason, or None."""
+    if search_calls > 0 and failed_searches >= search_calls:
+        return "error", ALL_SEARCHES_FAILED
+    return status, None
+
+
+def parsed_error_kind(status: RunStatus, reason: str | None) -> str | None:
+    """The error_kind of a parsed answer from its effective status and effective_status's reason: None when
+    ok, "all_searches_failed" for that reason, "provider_failed" for any other error the response reports,
+    else the status itself (refused, truncated)."""
+    if status == "ok":
+        return None
+    if reason == ALL_SEARCHES_FAILED:
+        return "all_searches_failed"
+    return "provider_failed" if status == "error" else status
 
 
 class Lenient(BaseModel):
@@ -96,6 +138,28 @@ class EngineConfig(Lenient):
         )
 
 
+def first_difference(this: EngineConfig, other: EngineConfig) -> str | None:
+    """The first field that sets two engine configs apart, worded as `this` against `other`: the tool
+    version, then the params by name, then the surface ("max_output_tokens 1000 instead of 1200", "no
+    force_search instead of force_search true"). None when the two are one config. Values print as JSON."""
+    if this.config_sha == other.config_sha:
+        return None
+    if this.tool_version != other.tool_version:
+        mine, theirs = (e.tool_version or "the default" for e in (this, other))
+        return f"tool version {mine} instead of {theirs}"
+    for key in sorted(set(this.params) | set(other.params)):
+        mine, theirs = this.params.get(key), other.params.get(key)
+        if key not in this.params:
+            return f"no {key} instead of {key} {json.dumps(theirs)}"
+        if key not in other.params:
+            return f"{key} {json.dumps(mine)} instead of no {key}"
+        if canonical_json(mine) != canonical_json(theirs):
+            return f"{key} {json.dumps(mine)} instead of {json.dumps(theirs)}"
+    if this.surface != other.surface:
+        return f"surface {this.surface} instead of {other.surface}"
+    return f"{this.provider} {this.model_requested} instead of {other.provider} {other.model_requested}"
+
+
 class SourceRef(Lenient):
     """A source as a parser saw it, before storage."""
 
@@ -132,7 +196,9 @@ class Run(Lenient):
     """One call to one engine for one prompt and replicate.
 
     `raw_sha256` and `parser_version` are None when no response body was received (a timeout, a transport or
-    HTTP error, or a budget_skip): there is no stored response to address or parse.
+    HTTP error, or a budget_skip): there is no stored response to address or parse. `error_kind` says why a
+    run did not end ok (see ERROR_KINDS) and is None for an ok run; records written before it existed read as
+    None.
     """
 
     id: str = Field(default_factory=new_id)
@@ -155,9 +221,18 @@ class Run(Lenient):
     cost_usd: float = 0.0
     started_at: AwareDatetime
     finished_at: AwareDatetime
+    error_kind: str | None = None
 
 
 class SourceRecord(Lenient):
+    """One consulted or cited source of a run, as parsed from the raw response `raw_sha256` names.
+
+    A call that is tried again (a resume retries a call whose last run is not ok, or one whose sources were
+    written before a crash stopped its run) appends a second set of sources under the same `run_id`. Readers
+    keep only the sources whose `raw_sha256` equals the `raw_sha256` of the run's last record. Lines written
+    before this field existed read as None.
+    """
+
     run_id: str
     role: SourceRole
     url: str
@@ -167,6 +242,23 @@ class SourceRecord(Lenient):
     title: str | None = None
     char_start: int | None = None
     char_end: int | None = None
+    raw_sha256: str | None = None
+
+
+class Page(Lenient):
+    """One owned page or off-site post in the library (`.footnote/pages.jsonl`)."""
+
+    id: str
+    url: str
+    canonical_url: str
+    title: str | None = None
+    source: PageSource
+    lastmod: str | None = None
+    discovered_at: AwareDatetime = Field(default_factory=utcnow)
+
+    @staticmethod
+    def id_for(canonical_url: str) -> str:
+        return sha256_of(canonical_url)[:16]
 
 
 class Manifest(Lenient):
@@ -180,3 +272,12 @@ class Manifest(Lenient):
     runner: RunnerKind = "local"
     started_at: AwareDatetime = Field(default_factory=utcnow)
     status: ManifestStatus = "running"
+    label: str = ""
+    engines: list[EngineConfig] = Field(default_factory=list)
+    intents: list[Intent] = Field(default_factory=list)
+    canon_version: int = 0
+    planning_version: str = ""
+    paraphrases: int = 0
+    reps: int = 0
+    finished_at: AwareDatetime | None = None
+    note: str = ""

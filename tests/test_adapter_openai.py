@@ -354,3 +354,12 @@ async def test_as_blob_round_trips_and_never_holds_the_api_key(httpx_mock):
     again = RawResponse.model_validate(json.loads(json.dumps(blob)))
     assert again == raw
     assert OpenAIAdapter().parse(again) == OpenAIAdapter().parse(raw)
+
+
+def test_build_request_passes_per_call_limits():
+    params = {"max_output_tokens": 1200, "max_tool_calls": 3}
+    engine = EngineConfig(provider="openai", model_requested="gpt-5-mini", params=params)
+    req = OpenAIAdapter().build_request("q", engine)
+    assert req["max_output_tokens"] == 1200 and req["max_tool_calls"] == 3
+    bare = EngineConfig(provider="openai", model_requested="gpt-5-mini")
+    assert "max_output_tokens" not in OpenAIAdapter().build_request("q", bare)

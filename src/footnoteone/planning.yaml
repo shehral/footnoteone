@@ -1,0 +1,32 @@
+# Per-call limits the runner sends and the cost assumptions the planner uses. `limits` are engine params
+# merged under the user's own (so they enter config_sha); the rest are planning assumptions until recorded
+# responses replace them. Typical figures estimate a burst; the max figures bound one call for the budget
+# reservation (tool fee x max_searches + token price x (max_input_tokens + max output)).
+# Hard caps are only what a request sends: the output limits, and the search limits for OpenAI
+# (max_tool_calls) and Anthropic (max_uses). No request field caps input tokens, and OpenAI and Anthropic
+# bill search results as input tokens (developers.openai.com/api/docs/pricing and
+# platform.claude.com/docs/en/about-claude/pricing, read 2026-10-06), so a call can exceed
+# max_input_tokens; the Perplexity Agent API documents no search cap, so a call can exceed its max_searches.
+version: "2026-10-05"
+providers:
+  openai:
+    limits: {max_output_tokens: 1200, max_tool_calls: 3}
+    typical_input_tokens: 2500
+    typical_output_tokens: 600
+    typical_searches: 1.5
+    max_input_tokens: 8000
+    max_searches: 3
+  anthropic:
+    limits: {max_tokens: 1200, max_uses: 3}
+    typical_input_tokens: 3000
+    typical_output_tokens: 600
+    typical_searches: 1.5
+    max_input_tokens: 10000
+    max_searches: 3
+  perplexity:
+    limits: {max_output_tokens: 1200}
+    typical_input_tokens: 2000
+    typical_output_tokens: 600
+    typical_searches: 1.5
+    max_input_tokens: 8000
+    max_searches: 3

@@ -7,10 +7,14 @@ from footnoteone.schema import (
     Intent,
     Manifest,
     Observation,
+    Page,
     Prompt,
     Run,
+    SourceRecord,
     SourceRef,
     canonical_json,
+    first_difference,
+    run_key,
     sha256_of,
     utcnow,
 )
@@ -139,3 +143,55 @@ def test_run_without_a_response_body_round_trips_through_the_store(tmp_path):
     store.append("runs", run)
     [again] = store.iter("runs", Run)
     assert again == run and again.raw_sha256 is None and again.parser_version is None
+
+
+def test_page_id_is_sixteen_hex_of_canonical_url():
+    page = Page(
+        id=Page.id_for("https://example.org/a"), url="https://example.org/a/",
+        canonical_url="https://example.org/a", source="sitemap",
+    )
+    assert len(page.id) == 16 and page.id == Page.id_for("https://example.org/a")
+    assert page.discovered_at.tzinfo is not None
+
+
+def test_run_key_is_deterministic_and_label_scoped():
+    a = run_key("2026-10-07", "i1", "p1", "e" * 64, 0)
+    assert a == run_key("2026-10-07", "i1", "p1", "e" * 64, 0) and len(a) == 32
+    assert a != run_key("2026-10-14", "i1", "p1", "e" * 64, 0)
+
+
+def test_effective_status_all_searches_failed_is_error():
+    from footnoteone.schema import effective_status
+
+    assert effective_status("ok", 2, 2) == ("error", "all searches failed")
+    assert effective_status("ok", 2, 1) == ("ok", None)
+    assert effective_status("ok", 0, 0) == ("ok", None)
+    assert effective_status("truncated", 1, 1) == ("error", "all searches failed")
+
+
+def test_manifest_new_fields_default_and_round_trip():
+    m = Manifest(code_version="0.0.1", config_sha="c" * 64, price_table_version="v", budget_usd=5.0)
+    assert m.label == "" and m.engines == [] and m.intents == [] and m.finished_at is None
+    assert Manifest.model_validate_json(m.model_dump_json()) == m
+
+
+def test_source_record_names_its_raw_response_and_older_lines_still_load():
+    older = (
+        '{"run_id":"r","role":"cited","url":"https://a.org/","canonical_url":"https://a.org","rank":1,'
+        '"provider_field":"f"}'
+    )
+    assert SourceRecord.model_validate_json(older).raw_sha256 is None
+    rec = SourceRecord.model_validate_json(older).model_copy(update={"raw_sha256": "ab" * 32})
+    assert SourceRecord.model_validate_json(rec.model_dump_json()) == rec
+
+
+def test_first_difference_names_what_sets_two_configs_of_one_model_apart():
+    base = EngineConfig(provider="openai", model_requested="gpt-5-mini", params={"max_output_tokens": 1200})
+    lower = base.model_copy(update={"params": {"max_output_tokens": 1000}})
+    forced = base.model_copy(update={"params": {"force_search": True, "max_output_tokens": 1200}})
+    tool = base.model_copy(update={"tool_version": "web_search_2026"})
+    assert first_difference(lower, base) == "max_output_tokens 1000 instead of 1200"
+    assert first_difference(forced, base) == "force_search true instead of no force_search"
+    assert first_difference(base, forced) == "no force_search instead of force_search true"
+    assert first_difference(tool, base) == "tool version web_search_2026 instead of the default"
+    assert first_difference(base, base) is None

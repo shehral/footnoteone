@@ -1,0 +1,220 @@
+{# Autoescaped. One self-contained page: inline CSS, no scripts, no external assets. Each value's statistics
+   sit in a details element beside its plain-word value. #}
+{% macro value(mv, unit="run", jaccard=false, note=true) -%}
+<span class="value">{{ mv|plain }}</span><details><summary>statistics</summary>{{ mv|stats(unit, jaccard, true, note) }}</details>
+{%- endmacro %}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FootnoteOne report</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf7;
+  --fg: #1f1e1c;
+  --muted: #6b675f;
+  --rule: #dcd8ce;
+  --accent: #7a4a2b;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #171614;
+    --fg: #ebe8e1;
+    --muted: #a39f96;
+    --rule: #3a3833;
+    --accent: #e0a47a;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 17px/1.6 Charter, "Bitstream Charter", "Iowan Old Style", Georgia, serif;
+}
+.page { max-width: 54rem; margin: 0 auto; padding: 2.5rem 1rem 4rem; }
+h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 .5rem; }
+h2 { font-size: 1.35rem; line-height: 1.3; margin: 2.75rem 0 .75rem; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
+h3 { font-size: 1.05rem; margin: 1.75rem 0 .4rem; }
+.lede { font-size: 1.1rem; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: .15rem 1rem; margin: 1.25rem 0; }
+.meta dt { color: var(--muted); }
+.meta dd { margin: 0; }
+.alert { border-left: 3px solid var(--accent); padding-left: .75rem; }
+.table { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+th, td { text-align: left; vertical-align: top; padding: .45rem .75rem .45rem 0; border-bottom: 1px solid var(--rule); }
+thead th { color: var(--muted); font-weight: normal; font-size: .85rem; }
+tbody th { font-weight: 600; }
+.meaning { display: block; color: var(--muted); font-weight: normal; font-size: .85rem; }
+.value, .num, code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.value, .num { font-size: .9em; }
+code { font-size: .85em; overflow-wrap: anywhere; }
+details { color: var(--muted); font-size: .8rem; line-height: 1.45; margin-top: .1rem; }
+summary { cursor: pointer; width: max-content; }
+summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.note { color: var(--muted); font-size: .9rem; }
+ul { padding-left: 1.25rem; }
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+<h1>FootnoteOne report</h1>
+<p class="lede">API answers, not the consumer apps: every number below comes from an answer API with web search, and the ChatGPT, Claude and Perplexity apps can answer the same question differently.</p>
+<dl class="meta">
+<dt>Generated</dt><dd>{{ generated }}</dd>
+<dt>Bursts</dt><dd>{{ report.labels|join(", ") if report.labels else "none" }}{{ (" (" ~ report.selection ~ ")") if report.selection else "" }}</dd>
+<dt>Canonical URL rules</dt><dd>version {{ report.canon_version }}</dd>
+<dt>Your domains</dt><dd>{{ report.owned_domains|join(", ") if report.owned_domains else "none" }}</dd>
+<dt>Intents</dt><dd>{{ report.intents_total }}</dd>
+</dl>
+{% if report.note %}
+<p class="alert">Note: {{ report.note }}.</p>
+{% endif %}
+</header>
+<section class="summary">
+<h2>Summary</h2>
+<p>The cited rate per engine: the share of searched answers to unbranded intents that cite one of your pages, with its 95% interval.</p>
+<ul>
+{% for e in report.engines %}
+<li>{{ e|summary }}</li>
+{% else %}
+<li>No engine is configured.</li>
+{% endfor %}
+</ul>
+</section>
+<section class="bursts">
+<h2>Bursts</h2>
+{% if report.bursts %}
+<div class="table"><table>
+<thead><tr><th scope="col">Burst</th><th scope="col">Started (UTC)</th><th scope="col">Status</th><th scope="col">Calls</th><th scope="col">Spent</th><th scope="col">Code version</th><th scope="col">Price table</th></tr></thead>
+<tbody>
+{% for b in report.bursts %}
+<tr><th scope="row">{{ b.label }}</th><td>{{ b.started_at|utc }}</td><td>{{ b.status }}</td><td class="num">{{ b.calls }}</td><td class="num">{{ b.spent_usd|money(b.budget_usd) }}</td><td>{{ b.code_version }}</td><td>{{ b.price_table_version }}</td></tr>
+{% endfor %}
+</tbody>
+</table></div>
+{% else %}
+<p>No burst is selected.</p>
+{% endif %}
+</section>
+<section class="guide">
+<h2>How to read this report</h2>
+<ul>
+<li>Engines are never averaged together: each has its own section, named by surface, model, tool version and config.</li>
+<li>Activation is how often an answer searched the web. Read, cited, FootnoteOne and conversion count only searched answers to unbranded intents (read, cited and FootnoteOne as one mean per intent); activation counts every answer whose activation is known, whatever the intent, and unconditional cited every such answer to an unbranded intent, searched or not.</li>
+<li>Each value is in plain words; open "statistics" beside it for the method, what was counted and the 95% interval. A Student t interval over intents can run below 0 or above 100 when intents are few; it is shown as computed. "cannot judge" means every intent gave the same value, so the interval has no width. "no data" means nothing was counted, and is never a zero.</li>
+</ul>
+</section>
+<main>
+{% for e in report.engines %}
+<section class="engine">
+<h2>{{ e|engine_title }}</h2>
+{% for note in e|engine_notes(report) %}
+<p class="alert">{{ note }}</p>
+{% endfor %}
+{% if e.runs_total %}
+<p>Runs: <span class="num">{{ e.runs_total }}</span>. Failures by reason: {{ e|failures }}. Unknown activation: {{ e.unknown_activation|plural("run") }}, counted here and never folded into yes or no. Replayed: {{ e.replayed|plural("run") }} re-read with the current parser. Replay failed: {{ e.replay_failed|plural("run") }}; unreadable raw response: {{ e.unreadable_blobs|plural("run") }}; each keeps its stored reading.</p>
+
+<h3>Funnel</h3>
+<div class="table"><table>
+<thead><tr><th scope="col">Step</th><th scope="col">Value</th></tr></thead>
+<tbody>
+{% for step, meaning, mv in e|funnel %}
+<tr><th scope="row">{{ step }}<span class="meaning">{{ meaning }}</span></th><td>{{ value(mv) }}</td></tr>
+{% endfor %}
+</tbody>
+</table></div>
+
+<h3>Placebo floor</h3>
+<p>The cited rate on placebo intents, questions your pages cannot answer. An unbranded intent whose cited interval overlaps it is indistinguishable from placebo.</p>
+<div class="table"><table>
+<tbody>
+<tr><th scope="row">Placebo floor</th><td>{{ value(e.placebo_floor, note=false) }}</td></tr>
+</tbody>
+</table></div>
+{% if e.placebo_floor.note and e.placebo_floor.note != e.placebo_floor|plain %}
+<p class="note">Note on the placebo floor: {{ e.placebo_floor.note }}</p>
+{% endif %}
+
+<h3>Noise floor</h3>
+<p>How much answers move when nothing changed: the overlap (Jaccard) of the URLs cited by repeats of the same wording, within one burst and between bursts, and the flip rate. A later change smaller than this is hard to tell from noise.</p>
+<div class="table"><table>
+<thead><tr><th scope="col">Measure</th><th scope="col">Value</th></tr></thead>
+<tbody>
+{% for measure, meaning, mv, is_jaccard in e|noise %}
+<tr><th scope="row">{{ measure }}<span class="meaning">{{ meaning }}</span></th><td>{{ value(mv, "pair", is_jaccard) }}</td></tr>
+{% endfor %}
+</tbody>
+</table></div>
+
+<h3>Per intent</h3>
+<p>Each intent's rates over its own searched answers, as single cells (Wilson 95%). Placebo and branded intents are listed but never judged against the placebo floor.</p>
+<div class="table"><table>
+<thead><tr><th scope="col">Intent</th><th scope="col">Kind</th><th scope="col">Activated runs</th><th scope="col">Read</th><th scope="col">Cited</th><th scope="col">FootnoteOne</th><th scope="col">Indistinguishable from placebo</th></tr></thead>
+<tbody>
+{% for row in e.per_intent %}
+<tr><th scope="row">{{ row.label }}</th><td>{{ row.kind }}</td><td class="num">{{ row.activated }}</td><td>{{ value(row.read) }}</td><td>{{ value(row.cited) }}</td><td>{{ value(row.footnote_one) }}</td><td>{{ row|flag(e.placebo_floor) }}</td></tr>
+{% endfor %}
+</tbody>
+</table></div>
+
+<h3>Read but never cited</h3>
+<p>Your pages that searched answers to unbranded intents consulted and never cited, most read first (at most 20).</p>
+{% if not e.read.denominator %}
+<p>No data: no searched answer to an unbranded intent was counted.</p>
+{% elif not e.read.numerator %}
+<p>None of your pages was read by a searched answer.</p>
+{% else %}
+<ul>
+{% for page in e.read_never_cited %}
+<li><code>{{ page.canonical_url }}</code>: read in {{ page.consulted_runs|plural("run") }}, cited in none</li>
+{% else %}
+<li>None: no page of yours was read without also being cited.</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<h3>Cited instead</h3>
+<p>Hosts cited by searched answers to unbranded intents that cited none of your pages, with each host's share of the answers that cited anything (at most 10).</p>
+{% if not e.cited.denominator %}
+<p>No data: no searched answer to an unbranded intent was counted.</p>
+{% elif e.cited_instead %}
+{% set answered = e.cited_instead|answered_runs %}
+<div class="table"><table>
+<thead><tr><th scope="col">Host</th><th scope="col">Share</th></tr></thead>
+<tbody>
+{% for host in e.cited_instead %}
+<tr><th scope="row">{{ host.host }}</th><td><span class="value">{{ host.share|percent }}</span><details><summary>statistics</summary>{{ host.cited_runs }} of {{ answered|plural("run") }}; a share of the answers that cited anything, with no interval</details></td></tr>
+{% endfor %}
+</tbody>
+</table></div>
+{% elif not e.answered_runs %}
+<p>No data: no searched answer to an unbranded intent cited any page.</p>
+{% else %}
+<p>None: no other host was cited in place of your pages.</p>
+{% endif %}
+{% endif %}
+</section>
+{% else %}
+<p>No engine is configured.</p>
+{% endfor %}
+{% if diff_lines is not none %}
+<section class="diff">
+<h2>Change between windows</h2>
+<ul>
+{% for line in diff_lines %}
+<li>{{ line }}</li>
+{% else %}
+<li>The diff has no verdict lines.</li>
+{% endfor %}
+</ul>
+</section>
+{% endif %}
+</main>
+</div>
+</body>
+</html>

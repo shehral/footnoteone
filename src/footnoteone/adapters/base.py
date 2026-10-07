@@ -80,7 +80,9 @@ def priced_model(provider: Provider, table: PriceTable, *names: str | None) -> s
 def default_price(provider: Provider, model: str, obs: Observation, table: PriceTable) -> float:
     """Tool-call fee times searches performed, plus token cost.
 
-    Unknown token counts cost 0 and are flagged upstream.
+    An unknown token count costs 0 here. The runner never records that figure alone: an answer with either
+    count missing is charged max(this price, the call's worst case), with "token usage missing; charged the
+    worst case" in its evidence (Ruling B26), so a response without usage cannot slip under the budget cap.
     """
     tokens = table.token_usd(provider, model, obs.input_tokens or 0, obs.output_tokens or 0)
     return obs.search_calls * table.tool_call_usd(provider) + tokens

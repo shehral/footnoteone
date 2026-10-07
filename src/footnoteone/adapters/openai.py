@@ -37,6 +37,10 @@ class OpenAIAdapter:
             "tools": [{"type": "web_search"}],
             "include": ["web_search_call.action.sources"],
         }
+        # Per-call limits, so one call cannot cost more than the worst case reserved for it.
+        for key in ("max_output_tokens", "max_tool_calls"):
+            if key in engine.params:
+                req[key] = int(engine.params[key])
         if engine.params.get("force_search"):
             # Forcing per https://developers.openai.com/api/docs/guides/tools-web-search, read 2026-10-05.
             req["tool_choice"] = "required"
@@ -69,7 +73,9 @@ class OpenAIAdapter:
         response status other than completed, incomplete or failed maps to "error".
         Activation is "yes" with any web_search_call item; without one it is "unknown" when the response
         status maps to "error" or "truncated" (the answer may have stopped before a search), else "no".
-        `model_requested` is carried over for pricing.
+        The stored request carries `max_output_tokens` and `max_tool_calls` when the engine params set them
+        (see `build_request`); parsing does not depend on them, so a response held to a limit is read by
+        its reported status like any other. `model_requested` is carried over for pricing.
         """
         body = raw.response
         searched: list[str | None] = []

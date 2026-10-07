@@ -493,3 +493,14 @@ async def test_as_blob_round_trips_and_never_holds_the_api_key(httpx_mock):
     again = RawResponse.model_validate(json.loads(json.dumps(blob)))
     assert again == raw
     assert PerplexityAdapter().parse(again) == PerplexityAdapter().parse(raw)
+
+
+def test_build_request_passes_output_limit():
+    engine = EngineConfig(provider="perplexity", model_requested="fast", params={"max_output_tokens": 1200})
+    req = PerplexityAdapter().build_request("q", engine)
+    # The Agent API reference (https://docs.perplexity.ai/api-reference/agent-post, read 2026-10-06) names the
+    # request field that caps generated tokens max_output_tokens, so the param is sent under its own name.
+    assert PerplexityAdapter.OUTPUT_LIMIT_FIELD == "max_output_tokens"
+    assert req[PerplexityAdapter.OUTPUT_LIMIT_FIELD] == 1200
+    bare = EngineConfig(provider="perplexity", model_requested="fast")
+    assert PerplexityAdapter.OUTPUT_LIMIT_FIELD not in PerplexityAdapter().build_request("q", bare)

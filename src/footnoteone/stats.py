@@ -233,7 +233,7 @@ def holm(pvals: list[float]) -> list[float]:
 
 
 def mde(
-    p: float, n_per_arm: int, m: int = 1, icc: float = 0.3, alpha: float = 0.05, power: float = 0.8
+    p: float, n_per_arm: float, m: float = 1, icc: float = 0.3, alpha: float = 0.05, power: float = 0.8
 ) -> float:
     """Minimum detectable difference in proportion units for a two-arm comparison.
 

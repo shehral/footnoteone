@@ -1,0 +1,141 @@
+{# Rendered with autoescape off (report.render_markdown). Statistics follow each value in parentheses. #}
+{% macro cell(mv) %}{{ mv|fmt_pct }}{% if mv.denominator %}, {{ mv.numerator }} of {{ mv.denominator }}{% endif %}{% endmacro %}
+# FootnoteOne report
+
+API answers, not the consumer apps: every number below comes from an answer API with web search, and the ChatGPT, Claude and Perplexity apps can answer the same question differently.
+
+- Generated: {{ generated }}
+- Bursts: {{ report.labels|join(", ") if report.labels else "none" }}{{ (" (" ~ report.selection ~ ")") if report.selection else "" }}
+- Canonical URL rules: version {{ report.canon_version }}
+- Your domains: {{ report.owned_domains|join(", ") if report.owned_domains else "none" }}
+- Intents: {{ report.intents_total }}
+{% if report.note %}
+
+**Note: {{ report.note }}.**
+{% endif %}
+
+## Summary
+
+The cited rate per engine: the share of searched answers to unbranded intents that cite one of your pages, with its 95% interval.
+
+{% for e in report.engines %}
+- {{ e|summary }}
+{% else %}
+- No engine is configured.
+{% endfor %}
+
+## Bursts
+
+{% if report.bursts %}
+| Burst | Started (UTC) | Status | Calls | Spent | Code version | Price table |
+|---|---|---|---|---|---|---|
+{% for b in report.bursts %}
+| {{ b.label|md_cell }} | {{ b.started_at|utc }} | {{ b.status }} | {{ b.calls }} | {{ b.spent_usd|money(b.budget_usd) }} | {{ b.code_version|md_cell }} | {{ b.price_table_version|md_cell }} |
+{% endfor %}
+{% else %}
+No burst is selected.
+{% endif %}
+
+## How to read this report
+
+- Engines are never averaged together: each has its own section, named by surface, model, tool version and config.
+- Activation is how often an answer searched the web. Read, cited, FootnoteOne and conversion count only searched answers to unbranded intents (read, cited and FootnoteOne as one mean per intent); activation counts every answer whose activation is known, whatever the intent, and unconditional cited every such answer to an unbranded intent, searched or not.
+- Each value has its 95% interval in parentheses, then what was counted and the method. A Student t interval over intents can run below 0 or above 100 when intents are few; it is shown as computed. "cannot judge" means every intent gave the same value, so the interval has no width. "no data" means nothing was counted, and is never a zero.
+
+{% for e in report.engines %}
+## {{ e|engine_title }}
+
+{% for note in e|engine_notes(report) %}
+{{ note }}
+
+{% endfor %}
+{% if e.runs_total %}
+Runs: {{ e.runs_total }}. Failures by reason: {{ e|failures }}. Unknown activation: {{ e.unknown_activation|plural("run") }}, counted here and never folded into yes or no. Replayed: {{ e.replayed|plural("run") }} re-read with the current parser. Replay failed: {{ e.replay_failed|plural("run") }}; unreadable raw response: {{ e.unreadable_blobs|plural("run") }}; each keeps its stored reading.
+
+### Funnel
+
+| Step | Value (95% interval) | Statistics |
+|---|---|---|
+{% for step, meaning, mv in e|funnel %}
+| {{ step }}: {{ meaning }} | {{ mv|fmt_pct }} | ({{ mv|stats(interval=false) }}) |
+{% endfor %}
+
+### Placebo floor
+
+The cited rate on placebo intents, questions your pages cannot answer. An unbranded intent whose cited interval overlaps it is indistinguishable from placebo.
+
+| Floor | Value (95% interval) | Statistics |
+|---|---|---|
+| Placebo floor | {{ e.placebo_floor|fmt_pct }} | ({{ e.placebo_floor|stats(interval=false, note=false) }}) |
+{% if e.placebo_floor.note and e.placebo_floor.note != e.placebo_floor|plain %}
+
+Note on the placebo floor: {{ e.placebo_floor.note }}
+{% endif %}
+
+### Noise floor
+
+How much answers move when nothing changed: the overlap (Jaccard) of the URLs cited by repeats of the same wording, within one burst and between bursts, and the flip rate. A later change smaller than this is hard to tell from noise.
+
+| Measure | Value (95% interval) | Statistics |
+|---|---|---|
+{% for measure, meaning, mv, is_jaccard in e|noise %}
+| {{ measure }}: {{ meaning }} | {{ mv|fmt_pct }} | ({{ mv|stats("pair", is_jaccard, false) }}) |
+{% endfor %}
+
+### Per intent
+
+Each intent's rates over its own searched answers, as single cells (Wilson 95%) with the runs counted. Placebo and branded intents are listed but never judged against the placebo floor.
+
+| Intent | Kind | Activated runs | Read | Cited | FootnoteOne | Indistinguishable from placebo |
+|---|---|---|---|---|---|---|
+{% for row in e.per_intent %}
+| {{ row.label|md_cell }} | {{ row.kind }} | {{ row.activated }} | {{ cell(row.read) }} | {{ cell(row.cited) }} | {{ cell(row.footnote_one) }} | {{ row|flag(e.placebo_floor) }} |
+{% endfor %}
+
+### Read but never cited
+
+Your pages that searched answers to unbranded intents consulted and never cited, most read first (at most 20).
+
+{% if not e.read.denominator %}
+No data: no searched answer to an unbranded intent was counted.
+{% elif not e.read.numerator %}
+None of your pages was read by a searched answer.
+{% else %}
+{% for page in e.read_never_cited %}
+- `{{ page.canonical_url|md_cell }}`: read in {{ page.consulted_runs|plural("run") }}, cited in none
+{% else %}
+- None: no page of yours was read without also being cited.
+{% endfor %}
+{% endif %}
+
+### Cited instead
+
+Hosts cited by searched answers to unbranded intents that cited none of your pages, with each host's share of the answers that cited anything (at most 10).
+
+{% if not e.cited.denominator %}
+No data: no searched answer to an unbranded intent was counted.
+{% elif e.cited_instead %}
+{% set answered = e.cited_instead|answered_runs %}
+{% for host in e.cited_instead %}
+- {{ host.host|md_cell }}: {{ host.share|percent }} ({{ host.cited_runs }} of {{ answered|plural("run") }})
+{% endfor %}
+{% elif not e.answered_runs %}
+No data: no searched answer to an unbranded intent cited any page.
+{% else %}
+- None: no other host was cited in place of your pages.
+{% endif %}
+
+{% endif %}
+{% else %}
+No engine is configured.
+
+{% endfor %}
+{% if diff_lines is not none %}
+## Change between windows
+
+{% for line in diff_lines %}
+- {{ line }}
+{% else %}
+- The diff has no verdict lines.
+{% endfor %}
+{% endif %}

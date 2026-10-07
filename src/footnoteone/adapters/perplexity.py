@@ -96,6 +96,9 @@ def _mask(text: str) -> str:
 class PerplexityAdapter:
     provider = "perplexity"
     version = "perplexity@0.1.0"
+    # The request field that caps generated tokens, per https://docs.perplexity.ai/api-reference/agent-post
+    # (read 2026-10-06). It is named like the engine param, so the param is sent under its own name.
+    OUTPUT_LIMIT_FIELD = "max_output_tokens"
 
     def build_request(self, prompt_text: str, engine: EngineConfig) -> dict[str, Any]:
         tool: dict[str, Any] = {"type": "web_search"}
@@ -105,7 +108,10 @@ class PerplexityAdapter:
             tool["filters"] = filters
         if "user_location" in engine.params:
             tool["user_location"] = copy.deepcopy(engine.params["user_location"])
-        return {"preset": engine.model_requested, "input": prompt_text, "tools": [tool]}
+        req: dict[str, Any] = {"preset": engine.model_requested, "input": prompt_text, "tools": [tool]}
+        if "max_output_tokens" in engine.params:
+            req[self.OUTPUT_LIMIT_FIELD] = int(engine.params["max_output_tokens"])
+        return req
 
     async def call(
         self, client: httpx.AsyncClient, prompt_text: str, engine: EngineConfig, api_key: str
@@ -147,7 +153,9 @@ class PerplexityAdapter:
         least 1 once activated. Status completed maps to "ok", incomplete to "truncated" and anything
         else, missing included, to "error"; the docs define no refusal content part, so "refused" is never
         produced. `failed_searches` stays 0: the docs show no failed-search object to count. `model_requested`
-        (the preset) is carried over for pricing.
+        (the preset) is carried over for pricing. The stored request carries `max_output_tokens` (sent as
+        `OUTPUT_LIMIT_FIELD`) when the engine params set it; parsing does not depend on it, so a response
+        held to that limit is read by its reported status like any other.
         """
         body = raw.response
         found: list[_Candidate] = []

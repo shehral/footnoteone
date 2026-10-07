@@ -43,8 +43,14 @@ jobs:
       - run: uv run ruff check .
       - run: uv run pytest -q
       - name: Wheel smoke test
+        shell: bash
         run: |
           uv build
           uv venv --python 3.12 "$RUNNER_TEMP/wheel-smoke"
           uv pip install --python "$RUNNER_TEMP/wheel-smoke/bin/python" dist/*.whl
-          "$RUNNER_TEMP/wheel-smoke/bin/footnote" --version
+          footnote="$RUNNER_TEMP/wheel-smoke/bin/footnote"
+          "$footnote" --version
+          # The installed wheel ships the templates, planning.yaml and pricing.yaml init and plan read.
+          project="$(mktemp -d)"
+          "$footnote" init https://example.org --no-discover --root "$project"
+          "$footnote" plan --root "$project"
