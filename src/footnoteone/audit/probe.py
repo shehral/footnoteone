@@ -11,7 +11,7 @@ import httpx
 from footnoteone import __version__
 from footnoteone.audit.robots import Purpose, load_bots, parse_robots
 
-ROBOTS_USER_AGENT = f"FootnoteOne/{__version__} (+https://github.com/footnoteone/footnoteone)"
+ROBOTS_USER_AGENT = f"FootnoteOne/{__version__} (+https://github.com/shehral/footnoteone)"
 ROBOTS_MAX_BYTES = 500 * 1024  # RFC 9309 2.5: parse at least 500 KiB; content past the cap is ignored
 RobotsAccess = Literal["success", "unavailable", "unreachable"]  # RFC 9309 2.3.1 access results
 

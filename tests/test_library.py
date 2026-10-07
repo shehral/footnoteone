@@ -220,7 +220,7 @@ def test_owned_set_for_collects_offsite_pages_and_video_ids():
     )
 
 
-UA = f"FootnoteOne/{__version__} (+https://github.com/footnoteone/footnoteone)"
+UA = f"FootnoteOne/{__version__} (+https://github.com/shehral/footnoteone)"
 
 
 async def test_fetch_bytes_follows_redirects_and_skips_failures_non_2xx_and_oversize(httpx_mock):

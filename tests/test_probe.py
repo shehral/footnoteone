@@ -5,7 +5,7 @@ from footnoteone import __version__
 from footnoteone.audit.probe import access_matrix, fetch_robots, probe_url
 from footnoteone.audit.robots import load_bots, parse_robots
 
-ROBOTS_UA = f"FootnoteOne/{__version__} (+https://github.com/footnoteone/footnoteone)"
+ROBOTS_UA = f"FootnoteOne/{__version__} (+https://github.com/shehral/footnoteone)"
 CONTROL_TOKENS = ("Google-Extended", "Applebot-Extended")  # bots.yaml `crawls: false`: never probed
 
 

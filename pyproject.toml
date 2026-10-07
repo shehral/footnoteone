@@ -35,7 +35,10 @@ dev = [
 footnote = "footnoteone.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/footnoteone/footnoteone"
+Homepage = "https://github.com/shehral/footnoteone"
+Repository = "https://github.com/shehral/footnoteone"
+Issues = "https://github.com/shehral/footnoteone/issues"
+Changelog = "https://github.com/shehral/footnoteone/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["hatchling"]

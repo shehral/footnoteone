@@ -31,7 +31,7 @@ from footnoteone.config import ProjectConfig, SiteConfig
 from footnoteone.schema import Page, PageSource, utcnow
 from footnoteone.store import JsonlStore
 
-USER_AGENT = f"FootnoteOne/{__version__} (+https://github.com/footnoteone/footnoteone)"
+USER_AGENT = f"FootnoteOne/{__version__} (+https://github.com/shehral/footnoteone)"
 MAX_SITEMAP_FETCHES = 50
 # sitemaps.org caps an uncompressed sitemap at 50 MiB. A gzip body that inflates past that is skipped, so a
 # small compressed body cannot expand without bound.
